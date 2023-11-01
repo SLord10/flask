@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customize Saturation</title>
+</head>
+<body>
+    <h2>Customize Saturation</h2>
+    <img src="/uploads/saturated_{{ filename }}" alt="Saturated Image">
+    <form method="POST" action="/saturate/{{ filename }}">
+        <input type="range" name="saturation" min="0" max="200" step="1" value="{{ prct }}">
+        <output for="saturation">{{ prct }}%</output>
+        <input type="submit" value="Apply Saturation">
+    </form>
+</body>
+</html>
