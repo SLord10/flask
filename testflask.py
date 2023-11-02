@@ -60,17 +60,7 @@ def histogram_route(filename):
 
     hist_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'hist_' + filename)
     plt.savefig(hist_image_path)
-
-    return '''
-    <h2>Color Histogram</h2>
-    <img src="/uploads/{0}" alt="Histogram">
-    <a href="/download_hist/{0}">Download Histogram Image</a>
-    '''.format('hist_' + filename)
-
-
-@app.route('/download_hist/<filename>')
-def download_histogram(filename):
-    hist_image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    hist_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'hist_' + filename)
     return send_file(hist_image_path, as_attachment=True)
 
 
@@ -110,21 +100,10 @@ def dominant_colors_route(filename):
     str_ = "Dominant Colors: " + str(nbreDominantColors)
 
 
-
-
     # Save the dominant color image
     dominant_colors_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'dominant_' + filename)
     cv2.imwrite(dominant_colors_image_path, imgr)
-
-    return '''
-    <h2>Dominant Colors</h2>
-    <img src="/uploads/{0}" alt="Dominant Colors">
-    <a href="/download_dominant/{0}">Download Dominant Colors Image</a>
-    '''.format('dominant_' + filename)
-
-@app.route('/download_dominant/<filename>')
-def download_dominant_colors(filename):
-    dominant_colors_image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    dominant_colors_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'dominant_' +filename)
     return send_file(dominant_colors_image_path, as_attachment=True)
 
 if __name__ == '__main__':
