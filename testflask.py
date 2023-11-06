@@ -1,31 +1,22 @@
 import base64
-
+import io
 from flask import Flask, render_template, request, redirect, url_for, send_file
 import os
 import cv2
 import numpy as np
 from sklearn.cluster import KMeans
 from matplotlib import pyplot as plt
-from flask_cors import CORS
+from PIL import Image
 
 app = Flask(__name__)
-#CORS(app)
+
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.debug = True
 
-@app.route('/')
-def index():
-    return '''
-    <form method="POST" action="/upload" enctype="multipart/form-data">
-        <input type="file" name="file">
-        <input type="submit" value="Upload">
-    </form>
-    '''
-
-@app.route('/upload', methods=['POST','GET'])
-def upload():
+@app.route('/upload/<choise>', methods=['POST','GET'])
+def upload(choise):
     data = request.get_json()
     if 'base64_image' not in data:
         return 'No base64 image provided'
@@ -44,19 +35,17 @@ def upload():
         with open(filename, 'wb') as f:
             f.write(image_data)
 
-        return f'''
-            <h2>Choose What to Do:</h2>
-            <a href="/dominant_colors/{filename}">View Dominant Colors</a>
-            <a href="/histogram/{filename}">View Histogram</a>
-            '''
+        if choise == 'hist':
+            return redirect(url_for('histogram_route', filename='hist_uploaded_image.jpeg'))
+        elif choise == 'dominant':
+            return redirect(url_for('dominant_colors_route', filename='dominant_uploaded_image.jpeg'))
 
     except Exception as e:
         return f'Error: {str(e)}'
 
-
-@app.route('/histogram/<filename>')
-def histogram_route(filename):
-    img_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+@app.route('/histogram/uploaded_image.jpeg')
+def histogram_route():
+    img_path = os.path.join(app.config['UPLOAD_FOLDER'], 'uploaded_image.jpeg')
     img = cv2.imread(img_path, 1)
     chans = cv2.split(img)
     colors = ("b", "g", "r")
@@ -70,15 +59,18 @@ def histogram_route(filename):
         plt.plot(hist, color=color)
         plt.xlim([0, 256])
 
-    hist_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'hist_' + filename)
-    plt.savefig(hist_image_path)
-    hist_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'hist_' + filename)
-    return send_file(hist_image_path, as_attachment=True)
+    # Save the histogram image to a byte buffer
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format='png')
+    buffer.seek(0)
+    img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+
+    return f'<img src="data:image/png;base64,{img_base64}">'
 
 
-@app.route('/dominant_colors/<filename>')
-def dominant_colors_route(filename):
-    img_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+@app.route('/dominant_colors/uploaded_image.jpeg')
+def dominant_colors_route():
+    img_path = os.path.join(app.config['UPLOAD_FOLDER'], 'uploaded_image.jpeg')
     img = cv2.imread(img_path, 1)
 
     # Resize the image
@@ -111,12 +103,13 @@ def dominant_colors_route(filename):
 
     str_ = "Dominant Colors: " + str(nbreDominantColors)
 
+    # Convert the dominant colors image to base64
+    buffer = io.BytesIO()
+    im_pil = Image.fromarray(imgr)
+    im_pil.save(buffer, format="PNG")
+    img_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
-    # Save the dominant color image
-    dominant_colors_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'dominant_' + filename)
-    cv2.imwrite(dominant_colors_image_path, imgr)
-    dominant_colors_image_path = os.path.join(app.config['UPLOAD_FOLDER'], 'dominant_' +filename)
-    return send_file(dominant_colors_image_path, as_attachment=True)
+    return f'<img src="data:image/png;base64,{img_base64}">'
 
 if __name__ == '__main__':
     app.run()
