@@ -1,12 +1,15 @@
+import base64
+
 from flask import Flask, render_template, request, redirect, url_for, send_file
 import os
 import cv2
 import numpy as np
 from sklearn.cluster import KMeans
 from matplotlib import pyplot as plt
+from flask_cors import CORS
 
 app = Flask(__name__)
-
+#CORS(app)
 UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -21,25 +24,34 @@ def index():
     </form>
     '''
 
-@app.route('/upload', methods=['POST'])
+@app.route('/upload', methods=['POST','GET'])
 def upload():
-    if 'file' not in request.files:
-        return 'No file part'
+    data = request.get_json()
+    if 'base64_image' not in data:
+        return 'No base64 image provided'
 
-    file = request.files['file']
+    base64_image = data['base64_image']
 
-    if file.filename == '':
-        return 'No selected file'
+    try:
+        # Decode the base64 image data
+        image_data = base64.b64decode(base64_image)
 
-    if file:
-        filename = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-        file.save(filename)
+        # Specify the upload folder and file name
+        upload_folder = app.config['UPLOAD_FOLDER']
+        filename = os.path.join(upload_folder, 'uploaded_image.jpeg')
+
+        # Save the image to the specified file
+        with open(filename, 'wb') as f:
+            f.write(image_data)
 
         return f'''
-        <h2>Choose What to Do:</h2>
-        <a href="/dominant_colors/{file.filename}">View Dominant Colors</a>
-        <a href="/histogram/{file.filename}">View Histogram</a>
-        '''
+            <h2>Choose What to Do:</h2>
+            <a href="/dominant_colors/{filename}">View Dominant Colors</a>
+            <a href="/histogram/{filename}">View Histogram</a>
+            '''
+
+    except Exception as e:
+        return f'Error: {str(e)}'
 
 
 @app.route('/histogram/<filename>')
